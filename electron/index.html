@@ -69,6 +69,27 @@
   .cal-ev.nudged { border-left-color:#f59f00; } .cal-ev.started { border-left-color:#37b24d; } .cal-ev.paused { border-left-color:#b5b5c0; opacity:.65; }
   .cal-t { font-size:13px; color:var(--muted); min-width:62px; } .cal-n { flex:1; }
   .cal-x { background:none; color:var(--muted); padding:2px 6px; }
+  .mic.mini { width:40px; height:40px; flex:none; box-shadow:0 4px 12px rgba(139,124,246,.4); }
+  .vf { display:flex; gap:8px; align-items:center; margin:4px 0; }
+  .sheet .vf input, .sheet .vf textarea { width:auto; flex:1; min-width:0; margin:0; }
+  .km-row { padding:0; overflow:hidden; }
+  .km-head { display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; background:none; padding:12px 14px; font-size:15px; font-weight:600; color:var(--ink); text-align:left; }
+  .km-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .km-body { padding:0 12px 12px; }
+  .km-row.collapsed .km-body { display:none; }
+  .km-lab { font-size:12px; color:var(--muted); margin:8px 0 2px; }
+  .km-bar { display:flex; gap:8px; align-items:center; margin:8px 0; }
+  .cal-t { background:none; padding:0; text-align:left; color:var(--accent); font-weight:600; }
+  .cal-t:disabled { color:var(--muted); font-weight:400; }
+  .cal-act { background:#1f1f26; color:#fff; border-radius:999px; padding:6px 14px; font-size:13px; }
+  .cal-act.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  .cal-act.done { background:var(--accent); }
+  .cal-ok { font-size:13px; color:#37b24d; }
+  .cal-err { font-size:12px; color:#e03131; }
+  .sheet .cal-in { width:auto; flex:1; min-width:0; margin:0; }
+  .cal-ev.done { border-left-color:#37b24d; opacity:.6; }
+  .cal-ev.done .cal-n { text-decoration:line-through; color:var(--muted); }
+
 </style>
 </head>
 <body>
@@ -119,11 +140,10 @@
 <div id="kmOverlay" class="sheet">
   <div class="bar"><button id="kmClose" class="icon" title="Back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h3>Know Me</h3></div>
   <h4>Why I'm doing this</h4>
-  <textarea id="kmWhy" rows="2" placeholder="In your own words"></textarea>
+  <textarea id="kmWhy" rows="2" placeholder="Say it or type it"></textarea>
   <h4>My excuses, and what I'd tell myself</h4>
+  <div class="km-bar"><button id="kmAdd" class="btn ghost">+ Add excuse</button><button id="kmSave" class="btn">Save</button><span id="kmMsg"></span></div>
   <div id="kmList"></div>
-  <button id="kmAdd" class="btn ghost">+ Add excuse</button>
-  <button id="kmSave" class="btn">Save</button><span id="kmMsg"></span>
 </div>
 
 <div id="calOverlay" class="sheet">
@@ -221,7 +241,7 @@
     const res = await window.mate.ask(s.text, 'Me', lang.value);
     if (res.error) { add('Something went wrong: ' + res.error, 'mate'); return done(); }
     add(res.reply, 'mate');
-    const t = await window.mate.tts(res.reply);
+    const t = await window.mate.tts(res.reply, lang.value);
     if (t.error) add('(Voice unavailable: ' + t.error + ')', 'mate');
     else new Audio(URL.createObjectURL(new Blob([t.audio], { type: 'audio/wav' }))).play();
     done();
@@ -233,14 +253,58 @@
     showView('talk');
     if (d.language) lang.value = d.language;
     const b = add(d.message, 'mate');
-    const mk = (label, action, doneText) => {
+    if (!d.id) return;
+    const row = document.createElement('div');
+    b.appendChild(row);
+    const chip = (label) => {
       const c = document.createElement('button');
       c.className = 'chip'; c.textContent = label;
-      c.onclick = async () => { await window.mate.c.act(d.id, action); b.querySelectorAll('.chip').forEach((x) => (x.disabled = true)); c.textContent = doneText; };
-      b.appendChild(document.createElement('br')); b.appendChild(c);
+      row.appendChild(c);
+      return c;
     };
-    if (d.id) { mk('I started', 'started', 'Noted \u2713'); mk('Remind me in 1 hour', 'snooze', 'Okay, in 1 hour \u2713'); }
+    const lock = () => row.querySelectorAll('.chip').forEach((x) => (x.disabled = true));
+
+    if (d.check) {
+      const done = chip('Done'), still = chip('Still going'), stuck = chip("I'm stuck");
+      done.onclick = async () => { await window.mate.c.act(d.id, 'done'); lock(); done.textContent = 'Done \u2713'; };
+      still.onclick = async () => { await window.mate.c.act(d.id, 'still'); lock(); still.textContent = 'Okay, keep going \u2713'; };
+      stuck.onclick = async () => {
+        await window.mate.c.act(d.id, 'stuck'); lock();
+        const msg = `I'm stuck on: ${d.task}. Help me with one small next step.`;
+        add(msg, 'me');
+        const res = await window.mate.ask(msg, 'Me', lang.value, true);
+        add(res.error ? 'Something went wrong: ' + res.error : res.reply, 'mate');
+        if (!res.error) {
+          const t = await window.mate.tts(res.reply, lang.value);
+          if (!t.error) new Audio(URL.createObjectURL(new Blob([t.audio], { type: 'audio/wav' }))).play().catch(() => {});
+        }
+      };
+      return;
+    }
+
+    const start = chip('Start');
+    const snooze = chip('Remind me in 1 hour');
+    start.onclick = async () => {
+      await window.mate.c.act(d.id, 'started');
+      start.textContent = 'Started \u2713'; start.disabled = true; snooze.remove();
+      setTimeout(() => {
+        start.remove();
+        const done = chip('Done');
+        done.onclick = async () => { await window.mate.c.act(d.id, 'done'); done.textContent = 'Done \u2713'; done.disabled = true; };
+      }, 1400);
+    };
+    snooze.onclick = async () => {
+      await window.mate.c.act(d.id, 'snooze');
+      snooze.textContent = 'Okay, in 1 hour \u2713'; snooze.disabled = true; start.disabled = true;
+    };
   });
+
+  // spoken reminder
+  window.mate.onSpeak(async (d) => {
+    const t = await window.mate.tts(d.text, d.language);
+    if (!t.error) new Audio(URL.createObjectURL(new Blob([t.audio], { type: 'audio/wav' }))).play().catch(() => {});
+  });
+  
 </script>
 <script src="knowme-ui.js"></script>
 <script src="calendar-ui.js"></script>

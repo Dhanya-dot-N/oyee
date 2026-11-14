@@ -1,10 +1,10 @@
 ﻿const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('mate', {
-  ask: (text, personality, language) => ipcRenderer.invoke('ask', { text, personality, language }),
+  ask: (text, personality, language, noRem) => ipcRenderer.invoke('ask', { text, personality, language, noRem }),
   setSize: (mode) => ipcRenderer.send('set-size', mode),
   stt: (wav, language) => ipcRenderer.invoke('stt', wav, language),
-  tts: (text) => ipcRenderer.invoke('tts', text),
+  tts: (text, language) => ipcRenderer.invoke('tts', text, language),
   k: {
     get: () => ipcRenderer.invoke('k:get'),
     save: (d) => ipcRenderer.invoke('k:save', d),
@@ -12,8 +12,9 @@ contextBridge.exposeInMainWorld('mate', {
   c: {
     list: () => ipcRenderer.invoke('c:list'),
     add: (d) => ipcRenderer.invoke('c:add', d),
-    act: (id, action) => ipcRenderer.invoke('c:act', { id, action }),
+    act: (id, action, value) => ipcRenderer.invoke('c:act', { id, action, value }),
   },
   onCommitments: (cb) => ipcRenderer.on('commitments', (_e, d) => cb(d)),
   onOpen: (cb) => ipcRenderer.on('open-commitment', (_e, d) => cb(d)),
+  onSpeak: (cb) => ipcRenderer.on('speak', (_e, d) => cb(d)),
 });

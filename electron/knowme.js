@@ -12,7 +12,7 @@ function load() {
 function clean(d) {
   const s = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
   const raw = Array.isArray(d && d.excuses) ? d.excuses : [];
-  const excuses = raw.slice(0, 10)
+  const excuses = raw.slice(0, 30)
     .map((x) => ({
       excuse: s(x && x.excuse, 100),
       replies: (Array.isArray(x && x.replies) ? x.replies : [])

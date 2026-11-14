@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+﻿require('dotenv').config({ override: true });
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain } = require('electron');
 const path = require('path');
 const commitments = require('./commitments');
@@ -18,14 +18,17 @@ function createWindow() {
     width: SIZES.small[0],
     height: SIZES.small[1],
     alwaysOnTop: true,
+    autoHideMenuBar: true,
     skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,     
     },
   });
   win.loadFile(path.join(__dirname, 'index.html'));
+  win.removeMenu();
   win.on('close', (e) => {
     if (!app.isQuitting) {
       e.preventDefault();
@@ -50,7 +53,7 @@ app.whenReady().then(() => {
     { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } },
   ]));
   commitments.init({ getWin: () => win, show: () => { win.show(); win.focus(); } });
-  const ok = globalShortcut.register('Control+Shift+M', toggleWindow);
+  const ok = globalShortcut.register('Control+Shift+Z', toggleWindow);
   if (!ok) console.log('Could not register the shortcut');
 });
 
@@ -72,6 +75,7 @@ async function llmReply(text, personality, language) {
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: 'POST',
+        signal: AbortSignal.timeout(25000),
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: BASE_RULES + TECHNIQUES + PERSONALITIES[personality] + replyLang(language) + commitments.context() + knowme.context(text) }] },
@@ -100,7 +104,7 @@ ipcMain.handle('ask', async (_event, payload) => {
   if (!text) return { error: 'Empty message' };
   const lang = LANGS.includes(payload.language) ? payload.language : 'English';
   commitments.onUserMessage(text);
-  const made = await tryReminders(text, lang);
+  const made = payload.noRem ? null : await tryReminders(text, lang);
   if (made) return { reply: made };
   return llmReply(text, 'Me', lang);
 });
@@ -135,14 +139,17 @@ ipcMain.handle('stt', async (_e, buf, language) => {
   }
 });
 
-ipcMain.handle('tts', async (_e, text) => {
+ipcMain.handle('tts', async (_e, text, lang) => {
   const key = process.env.GNANI_API_KEY;
   if (!key) return { error: 'Missing GNANI_API_KEY in .env' };
   if (typeof text !== 'string' || !text.trim()) return { error: 'No text' };
   text = text.trim().slice(0, 300); // keep spoken replies short to save credits
-  let language = 'en-IN';
-  if (/[\u0C80-\u0CFF]/.test(text)) language = 'kn-IN';
-  else if (/[\u0900-\u097F]/.test(text)) language = 'hi-IN';
+  let language = { English: 'en-IN', Hindi: 'hi-IN', Kannada: 'kn-IN' }[lang];
+  if (!language) {
+    language = 'en-IN';
+    if (/[\u0C80-\u0CFF]/.test(text)) language = 'kn-IN';
+    else if (/[\u0900-\u097F]/.test(text)) language = 'hi-IN';
+  }
   try {
     const res = await fetch(`${GNANI}/api/v1/tts/inference`, {
       method: 'POST',
@@ -217,6 +224,7 @@ Return JSON only: {"reminders":[{"task":"...","startAt":"..."}]}. Nothing to add
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
+      signal: AbortSignal.timeout(12000),
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
