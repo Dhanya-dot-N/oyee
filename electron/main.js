@@ -18,6 +18,11 @@ function createWindow() {
     width: SIZES.small[0],
     height: SIZES.small[1],
     alwaysOnTop: true,
+    icon: path.join(__dirname, 'icon.png'),
+    title: 'oyeee',
+    maximizable: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#FBF8F5', symbolColor: '#2B2B33', height: 34 },
     autoHideMenuBar: true,
     skipTaskbar: true,
     webPreferences: {
