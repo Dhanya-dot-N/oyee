@@ -11,6 +11,7 @@ I freeze before starting tasks. Generic productivity apps nag in a voice that is
 - **Know Me:** save the excuses you usually make ("I don't want to do DSA") along with 2-3 replies you wrote for each, plus a "why I'm doing this" note.
 - **Talk to Me:** say or type what you're avoiding. oyeee replies as "Me", using your saved words, picks one 5-10 minute step, and suggests a method that fits (5-minute start, Pomodoro, ugliest first draft, and so on).
 - **Nudge Me:** say "assignment due 10pm, write at 5pm" and it creates two reminders. You get a desktop notification at the time, and the app opens when you click it. A calendar view shows today, tomorrow and the days after.
+- **Check-ins:** after you press Start, oyeee checks in at 10, 20 and 30 minutes, then every 30 minutes for up to 3 hours, spoken aloud, with Done / Still going / I'm stuck.
 - **Voice in, voice out:** speech-to-text with Gnani **Prisma** and spoken replies with Gnani **Timbre**, in **English, Hindi and Kannada**. Replies come in one language only, chosen from a dropdown.
 - **Deadline-aware:** if you say you have 2 hours left and half is done, the reply uses that and gives a concrete next step instead of telling you to rest.
 
@@ -56,7 +57,7 @@ Optional: `GNANI_VOICE` to change the spoken voice, and `NUDGE_WAIT_MIN` to chan
 npm start
 ```
 
-Shortcut: **Ctrl+Shift+M** shows or hides the window. Closing the window keeps oyeee running in the tray. Use the tray menu to quit.
+Shortcut: **Ctrl+Shift+Z** shows or hides the window. Closing the window keeps oyeee running in the tray. Use the tray menu to quit.
 
 ## Privacy and limits
 
