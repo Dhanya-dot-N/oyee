@@ -1,4 +1,4 @@
-# oyeee
+# Oyee
 
 A voice accountability companion for your desktop that talks to you in **your own words**, like another you.
 
