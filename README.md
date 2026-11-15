@@ -4,7 +4,7 @@ A voice accountability companion for your desktop that talks to you in **your ow
 
 I freeze before starting tasks. Generic productivity apps nag in a voice that isn't mine, so I built one that answers with the replies I wrote for myself, shrinks the task to a 5-10 minute step, and nudges me at the time I chose. Built for the **Great Indian AI Internship Challenge** by Gnani AI.
 
-<!-- Add a screenshot or demo GIF here: ![oyeee demo](demo.gif) -->
+![Home](home.png) ![Talk to Me](talk.png) ![Nudge Me](calendar.png)
 
 ## What it does
 
