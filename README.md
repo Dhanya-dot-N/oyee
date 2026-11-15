@@ -38,7 +38,7 @@ I freeze before starting tasks. Generic productivity apps nag in a voice that is
 You need Node.js and a Windows machine.
 
 ```powershell
-git clone <this-repo-url>
+git clone <https://github.com/Dhanya-dot-N/oyee.git>
 cd oyeee
 npm install
 ```
