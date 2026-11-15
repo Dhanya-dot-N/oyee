@@ -254,7 +254,7 @@
   // notification clicked
   window.mate.onOpen((d) => {
     showView('talk');
-    if (d.language) lang.value = d.language;
+    if (d.language && lang.value !== 'Auto') lang.value = d.language;
     const b = add(d.message, 'mate');
     if (!d.id) return;
     const row = document.createElement('div');

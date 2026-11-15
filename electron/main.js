@@ -107,13 +107,13 @@ ipcMain.handle('ask', async (_event, payload) => {
   if (!payload || typeof payload.text !== 'string') return { error: 'Invalid input' };
   const text = payload.text.trim().slice(0, 500);
   if (!text) return { error: 'Empty message' };
-  const lang = LANGS.includes(payload.language) ? payload.language : 'English';
+  const auto = payload.language === 'Auto'; // AUTO-LANG
+  const lang = LANGS.includes(payload.language) ? payload.language : auto ? detectLang(text) : 'English';
   commitments.onUserMessage(text);
   const made = payload.noRem ? null : await tryReminders(text, lang);
   if (made) return { reply: made };
-  return llmReply(text, 'Me', lang);
+  return llmReply(text, 'Me', auto ? 'Auto' : lang);
 });
-
 ipcMain.on('set-size', (_event, mode) => {
   const size = SIZES[mode];
   if (size) win.setSize(size[0], size[1]);
@@ -181,11 +181,20 @@ function langRule(t) {
   return ' The user wrote English. Reply in English only. No Hindi words except "beta".';
 }
 
+// AUTO-LANG
+function detectLang(t) {
+  if (/[\u0C80-\u0CFF]/.test(t)) return 'Kannada';
+  if (/[\u0900-\u097F]/.test(t)) return 'Hindi';
+  return 'English';
+}
+
 const LANGS = ['English', 'Hindi', 'Kannada'];
 function sttCode(l) { return { English: 'en-IN', Hindi: 'hi-IN', Kannada: 'kn-IN' }[l] || 'indic-auto'; }
 function replyLang(l) {
   if (l === 'Kannada') return ' Reply ONLY in simple, natural, spoken Kannada written in Kannada script. No Hindi. Write any English word (like study) in Kannada script too. Short plain sentences.';
   if (l === 'Hindi') return ' Reply ONLY in simple spoken Hindi written in Devanagari script. No English letters and no Kannada. Write English words like study in Devanagari too.';
+  // AUTO-LANG
+  if (l === 'Auto') return ' LANGUAGE: follow the language of the user\'s LATEST message, and ignore the language of earlier messages. This overrides any rule about never mixing languages. If they wrote Kannada script, reply in simple spoken Kannada script. If they wrote Hindi in Devanagari, reply in simple spoken Hindi in Devanagari. If they wrote English, reply in English only. If they mix Kannada and English written in English letters (Kanglish), reply in the same casual mixed style, in English letters. Never answer in a different language than they used.';
   return ' Reply in English only. No Hindi or Kannada words.';
 }
 
